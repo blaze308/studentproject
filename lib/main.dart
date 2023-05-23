@@ -170,11 +170,11 @@ class _MyAppState extends State<MyApp> {
           insetPadding: const EdgeInsets.all(20),
           alignment: Alignment.center,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Container(
-                height: 550,
+                height: 520,
                 child: Form(
                   key: formKey,
                   child: Column(
@@ -274,10 +274,15 @@ class _MyAppState extends State<MyApp> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: ElevatedButton(
-                          style: ButtonStyle(
-                              backgroundColor: MaterialStateColor.resolveWith(
-                                  (states) => const Color.fromARGB(
-                                      255, 248, 180, 179))),
+                          style: ElevatedButton.styleFrom(
+                              fixedSize: const Size(150, 30),
+                              padding: const EdgeInsets.all(5),
+                              textStyle: const TextStyle(
+                                  fontSize: 25, fontWeight: FontWeight.bold),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                              backgroundColor:
+                                  const Color.fromARGB(255, 248, 180, 179)),
                           onPressed: () {},
                           child: const Text("Post"),
                         ),

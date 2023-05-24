@@ -1,5 +1,7 @@
+import 'package:mongo_dart/mongo_dart.dart';
+
 class Product {
-  String? id;
+  ObjectId? id;
   String? title;
   String? image;
   int? price;

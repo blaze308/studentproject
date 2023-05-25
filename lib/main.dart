@@ -1,9 +1,12 @@
+import 'dart:io';
+
+import 'package:cloudinary/cloudinary.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:studentproject/cloudinary.dart';
+import 'package:mongo_dart/mongo_dart.dart' as m;
 import 'package:studentproject/db/mongodb.dart';
 import 'package:studentproject/db/product_model.dart';
-import 'package:mongo_dart/mongo_dart.dart' as M;
-import 'package:studentproject/tools/sizes.dart';
-import 'package:studentproject/widgets/add_image.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -197,13 +200,13 @@ class _MyAppState extends State<MyApp> {
                                       children: [
                                         Flexible(
                                           child: Padding(
-                                            padding: const EdgeInsets.all(10),
+                                            padding: const EdgeInsets.all(5),
                                             child: Image.network(
                                               Product.fromJson(
                                                       snapshot.data[index])
                                                   .image!,
                                               fit: BoxFit.cover,
-                                              width: 120,
+                                              width: 150,
                                               height: 100,
                                             ),
                                           ),
@@ -376,7 +379,9 @@ class _MyAppState extends State<MyApp> {
                           child: FloatingActionButton(
                             backgroundColor:
                                 const Color.fromARGB(255, 247, 113, 100),
-                            onPressed: () {},
+                            onPressed: () {
+                              MyCloudinary().uploadImage();
+                            },
                             child: const Icon(Icons.add, size: 40),
                           ),
                         ),
@@ -411,8 +416,10 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _insertData() async {
     final data = Product(
+        id: m.ObjectId(),
         title: titleController.text,
         price: int.parse(priceController.text),
+        image: MyCloudinary.response?.url.toString(),
         description: descController.text);
     var result = await MongoDatabase.insert(data);
   }

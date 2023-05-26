@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:studentproject/alternate.dart';
 import 'package:studentproject/cloudinary.dart';
-import 'package:mongo_dart/mongo_dart.dart' as m;
+// import 'package:mongo_dart/mongo_dart.dart' as m;
 import 'package:studentproject/constants/sizes.dart';
 import 'package:studentproject/db/mongodb.dart';
 import 'package:studentproject/db/product_model.dart';
 import 'package:studentproject/widgets/app_bar_title.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await MongoDatabase.connect();
-  runApp(const GetMaterialApp(
-    home: MyApp(),
-    debugShowCheckedModeBanner: false,
-  ));
+  bool result = await InternetConnectionChecker().hasConnection;
+  if (result == true) {
+    WidgetsFlutterBinding.ensureInitialized();
+    await MongoDatabase.connect();
+    runApp(const GetMaterialApp(
+      home: MyApp(),
+      debugShowCheckedModeBanner: false,
+    ));
+  } else {
+    runApp(const MaterialApp(
+      home: Alternate(),
+    ));
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -30,10 +39,30 @@ class _MyAppState extends State<MyApp> {
   TextEditingController priceController = TextEditingController();
   TextEditingController descController = TextEditingController();
 
+  Future<void> _refreshData() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    setState(() {
+      MongoDatabase.getData();
+      titleController.clear();
+      priceController.clear();
+      descController.clear();
+    });
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    priceController.dispose();
+    descController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     // print("screenheight: " + MediaQuery.of(context).size.height.toString());
     // print("screenwidth: " + MediaQuery.of(context).size.width.toString());
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -42,208 +71,225 @@ class _MyAppState extends State<MyApp> {
         elevation: ScreenSize.toolbarElevation,
         title: const AppBarTitle(),
       ),
-      body: FutureBuilder(
-          future: MongoDatabase.getData(),
-          builder: (context, AsyncSnapshot snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator.adaptive());
-            } else {
-              if (snapshot.hasData) {
-                return SizedBox(
-                  height: double.maxFinite,
-                  width: double.maxFinite,
-                  child: ListView.builder(
-                      itemCount: snapshot.data.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                            padding: EdgeInsets.only(
-                                left: ScreenSize.width10,
-                                right: ScreenSize.width15,
-                                top: ScreenSize.height12),
-                            child: GestureDetector(
-                              onTap: () => showDialog(
-                                  context: context,
-                                  builder: (context) => Dialog(
-                                        insetPadding: EdgeInsets.only(
-                                            top: ScreenSize.height10,
-                                            left: ScreenSize.width20,
-                                            right: ScreenSize.width20),
-                                        alignment: Alignment.center,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                                ScreenSize.width20)),
-                                        child: SingleChildScrollView(
-                                            child: ConstrainedBox(
-                                          constraints: const BoxConstraints(),
-                                          child: Column(children: [
-                                            ClipRRect(
-                                              borderRadius: BorderRadius.only(
-                                                  topLeft: Radius.circular(
-                                                      ScreenSize.width20),
-                                                  topRight: Radius.circular(
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: FutureBuilder(
+            future: MongoDatabase.getData(),
+            builder: (context, AsyncSnapshot snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                    child: CircularProgressIndicator.adaptive());
+              } else {
+                if (snapshot.hasData) {
+                  return SizedBox(
+                    height: double.maxFinite,
+                    width: double.maxFinite,
+                    child: ListView.builder(
+                        itemCount: snapshot.data.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                              padding: EdgeInsets.only(
+                                  left: ScreenSize.width10,
+                                  right: ScreenSize.width15,
+                                  top: ScreenSize.height5,
+                                  bottom: ScreenSize.height5),
+                              child: GestureDetector(
+                                onTap: () => showDialog(
+                                    context: context,
+                                    builder: (context) => Dialog(
+                                          insetPadding: EdgeInsets.only(
+                                              top: ScreenSize.height10,
+                                              left: ScreenSize.width20,
+                                              right: ScreenSize.width20),
+                                          alignment: Alignment.center,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
                                                       ScreenSize.width20)),
-                                              child: Image.network(
-                                                  Product.fromJson(
-                                                          snapshot.data[index])
-                                                      .image!,
-                                                  fit: BoxFit.cover,
-                                                  width: double.maxFinite,
-                                                  height: ScreenSize.height250),
-                                            ),
-                                            Padding(
-                                              padding: EdgeInsets.all(
-                                                  ScreenSize.width20),
-                                              child: Column(
-                                                children: [
-                                                  Padding(
-                                                    padding: EdgeInsets.only(
-                                                        bottom: ScreenSize
-                                                            .height10),
-                                                    child: Align(
+                                          child: SingleChildScrollView(
+                                              child: ConstrainedBox(
+                                            constraints: const BoxConstraints(),
+                                            child: Column(children: [
+                                              ClipRRect(
+                                                borderRadius: BorderRadius.only(
+                                                    topLeft: Radius.circular(
+                                                        ScreenSize.width20),
+                                                    topRight: Radius.circular(
+                                                        ScreenSize.width20)),
+                                                child: Image.network(
+                                                    Product.fromJson(snapshot
+                                                            .data[index])
+                                                        .image!,
+                                                    fit: BoxFit.cover,
+                                                    width: double.maxFinite,
+                                                    height:
+                                                        ScreenSize.height250),
+                                              ),
+                                              Padding(
+                                                padding: EdgeInsets.all(
+                                                    ScreenSize.width20),
+                                                child: Column(
+                                                  children: [
+                                                    Padding(
+                                                      padding: EdgeInsets.only(
+                                                          bottom: ScreenSize
+                                                              .height10),
+                                                      child: Align(
+                                                        alignment: Alignment
+                                                            .centerLeft,
+                                                        child: Text(
+                                                            Product.fromJson(
+                                                                    snapshot.data[
+                                                                        index])
+                                                                .title
+                                                                .toString(),
+                                                            softWrap: true,
+                                                            maxLines: 3,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style: TextStyle(
+                                                                fontSize: ScreenSize
+                                                                    .fontSize25,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500)),
+                                                      ),
+                                                    ),
+                                                    Align(
                                                       alignment:
-                                                          Alignment.centerLeft,
+                                                          Alignment.centerRight,
+                                                      child: Text(
+                                                        "GHC ${Product.fromJson(snapshot.data[index]).price}",
+                                                        style: TextStyle(
+                                                            fontSize: ScreenSize
+                                                                .fontSize25,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: const Color
+                                                                    .fromARGB(
+                                                                255,
+                                                                199,
+                                                                69,
+                                                                71)),
+                                                      ),
+                                                    ),
+                                                    Padding(
+                                                      padding: EdgeInsets.only(
+                                                          top: ScreenSize
+                                                              .height10),
                                                       child: Text(
                                                           Product.fromJson(
                                                                   snapshot.data[
                                                                       index])
-                                                              .title
+                                                              .description
                                                               .toString(),
-                                                          softWrap: true,
-                                                          maxLines: 3,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
                                                           style: TextStyle(
+                                                              letterSpacing:
+                                                                  ScreenSize
+                                                                      .letterSpacing,
                                                               fontSize: ScreenSize
-                                                                  .fontSize25,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500)),
-                                                    ),
-                                                  ),
-                                                  Align(
-                                                    alignment:
-                                                        Alignment.centerRight,
-                                                    child: Text(
-                                                      "GHC ${Product.fromJson(snapshot.data[index]).price}",
-                                                      style: TextStyle(
-                                                          fontSize: ScreenSize
-                                                              .fontSize25,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: const Color
-                                                                  .fromARGB(255,
-                                                              199, 69, 71)),
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding: EdgeInsets.only(
-                                                        top: ScreenSize
-                                                            .height10),
-                                                    child: Text(
-                                                        Product.fromJson(
-                                                                snapshot.data[
-                                                                    index])
-                                                            .description
-                                                            .toString(),
-                                                        style: TextStyle(
-                                                            letterSpacing:
-                                                                ScreenSize
-                                                                    .letterSpacing,
-                                                            fontSize: ScreenSize
-                                                                .fontSize15)),
-                                                  )
-                                                ],
-                                              ),
-                                            )
-                                          ]),
+                                                                  .fontSize15)),
+                                                    )
+                                                  ],
+                                                ),
+                                              )
+                                            ]),
+                                          )),
                                         )),
-                                      )),
-                              child: Container(
-                                  height: ScreenSize.height80,
-                                  decoration: BoxDecoration(
-                                      boxShadow: [
-                                        BoxShadow(
-                                            color: Colors.black26,
-                                            blurRadius: ScreenSize.width1)
-                                      ],
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          ScreenSize.width5)),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Flexible(
-                                        child: Padding(
-                                          padding:
-                                              EdgeInsets.all(ScreenSize.width5),
-                                          child: SizedBox(
-                                            child: Image(
-                                              width: ScreenSize.width150,
-                                              fit: BoxFit.fitWidth,
-                                              image: NetworkImage(
-                                                Product.fromJson(
-                                                        snapshot.data[index])
-                                                    .image!,
-                                                // width: double.maxFinite,
-                                                // height: ScreenSize.height100,
+                                child: Container(
+                                    height: ScreenSize.height80,
+                                    decoration: BoxDecoration(
+                                        boxShadow: [
+                                          BoxShadow(
+                                              color: Colors.black26,
+                                              blurRadius: ScreenSize.width1)
+                                        ],
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(
+                                            ScreenSize.width5)),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        Flexible(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(
+                                                ScreenSize.width5),
+                                            child: SizedBox(
+                                              child: Image(
+                                                width: ScreenSize.width150,
+                                                fit: BoxFit.fitWidth,
+                                                image: NetworkImage(
+                                                  Product.fromJson(
+                                                          snapshot.data[index])
+                                                      .image!,
+                                                  // width: double.maxFinite,
+                                                  // height: ScreenSize.height100,
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      Padding(
-                                          padding: EdgeInsets.only(
-                                              left: ScreenSize.width10),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceEvenly,
-                                            children: [
-                                              SizedBox(
-                                                width: ScreenSize.width200,
-                                                child: Padding(
-                                                  padding: EdgeInsets.only(
-                                                      top: ScreenSize.height5,
-                                                      right: ScreenSize.width5),
-                                                  child: Text(
-                                                    Product.fromJson(snapshot
-                                                            .data[index])
-                                                        .title
-                                                        .toString(),
-                                                    softWrap: true,
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w400),
+                                        Padding(
+                                            padding: EdgeInsets.only(
+                                                left: ScreenSize.width10),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                SizedBox(
+                                                  width: ScreenSize.width200,
+                                                  child: Padding(
+                                                    padding: EdgeInsets.only(
+                                                        top: ScreenSize.height5,
+                                                        right:
+                                                            ScreenSize.width5),
+                                                    child: Text(
+                                                      Product.fromJson(snapshot
+                                                              .data[index])
+                                                          .title
+                                                          .toString(),
+                                                      softWrap: true,
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w400),
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              Padding(
-                                                  padding: EdgeInsets.only(
-                                                      top: ScreenSize.height20),
-                                                  child: Text(
-                                                    "GHC ${Product.fromJson(snapshot.data[index]).price}",
-                                                    style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: Color.fromARGB(
-                                                            255, 199, 69, 71)),
-                                                  ))
-                                            ],
-                                          ))
-                                    ],
-                                  )),
-                            ));
-                      }),
-                );
-              } else {
-                return const Center(child: Text("data not found"));
+                                                Padding(
+                                                    padding: EdgeInsets.only(
+                                                        top: ScreenSize
+                                                            .height20),
+                                                    child: Text(
+                                                      "GHC ${Product.fromJson(snapshot.data[index]).price}",
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Color.fromARGB(
+                                                              255,
+                                                              199,
+                                                              69,
+                                                              71)),
+                                                    ))
+                                              ],
+                                            ))
+                                      ],
+                                    )),
+                              ));
+                        }),
+                  );
+                } else {
+                  return const Center(child: Text("data not found"));
+                }
               }
-            }
-          }),
+            }),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           openDialog();

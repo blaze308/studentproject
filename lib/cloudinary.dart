@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 
 import 'package:cloudinary/cloudinary.dart';
 import 'package:image_picker/image_picker.dart';
@@ -27,11 +26,11 @@ class MyCloudinary {
         // fileName: imageFile.toString(),
       );
       if (response!.isSuccessful) {
-        print(response);
+        // print(response);
         // return response!.secureUrl;
       }
     } else {
-      print("select image");
+      // print("select image");
     }
   }
 }

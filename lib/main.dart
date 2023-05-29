@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -39,6 +42,10 @@ class _MyAppState extends State<MyApp> {
   TextEditingController priceController = TextEditingController();
   TextEditingController descController = TextEditingController();
 
+  late StreamSubscription subscription;
+  var isDeviceConnected = false;
+  bool isAlertSet = false;
+
   Future<void> _refreshData() async {
     await Future.delayed(const Duration(seconds: 2));
 
@@ -49,6 +56,27 @@ class _MyAppState extends State<MyApp> {
       descController.clear();
     });
   }
+
+  @override
+  void initState() {
+    getConnectivity();
+    super.initState();
+  }
+
+  getConnectivity() => {
+        subscription = Connectivity()
+            .onConnectivityChanged
+            .listen((ConnectivityResult result) async {
+          isDeviceConnected = await InternetConnectionChecker().hasConnection;
+
+          if (!isDeviceConnected && isAlertSet == false) {
+            showDialogBox();
+            setState(() {
+              isAlertSet = true;
+            });
+          }
+        })
+      };
 
   @override
   void dispose() {
@@ -442,6 +470,30 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
       );
+
+  showDialogBox() => showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+            title: Text("no connection"),
+            content: Text("Please connect internet"),
+            actions: [
+              TextButton(
+                  onPressed: () async {
+                    Navigator.pop(context, "Cancel");
+                    setState(() => isAlertSet = false);
+                    isDeviceConnected =
+                        await InternetConnectionChecker().hasConnection;
+
+                    if (!isDeviceConnected) {
+                      showDialogBox();
+                      setState(() {
+                        isAlertSet = true;
+                      });
+                    }
+                  },
+                  child: Text("OK"))
+            ],
+          ));
 
   Future<void> _insertData() async {
     final data = Product(
